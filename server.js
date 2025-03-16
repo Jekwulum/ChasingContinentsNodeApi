@@ -44,23 +44,55 @@ app.get("/api/flights", async (req, res) => {
       asiaDestinations,
       australiaDestinations
     );
+    console.log(`flight type: ${flight_type}`);
 
-    const flightInstance = flight_type === "direct" ? new DirectFlight() : new WithStops();
+    // const flightInstance = flight_type === "direct" ? new DirectFlight() : new WithStops();
+    const flightInstance = new DirectFlight();
+    const validItineraries = [];
+    let sequenceCount = 0;
+
+    for (const sequence of allSequences) {
+      sequenceCount++;
+      console.log(`\nChecking sequence ${sequenceCount}: ${sequence}`);
+      const itinerary = await flightInstance.simulateItinerary(start_origin, sequence, currentTime);
+
+      if (itinerary) {
+        console.log("Itinerary found:");
+        itinerary.flights.forEach((flight) => {
+          const layoverStr = flight.layover
+            ? ` | Layover in ${flight.layover_iata}: ${flight.layover}`
+            : "";
+          console.log(
+            `${flight.origin} -> ${flight.destination} | ${flight.airline} ${flight.flight_number} | ` +
+            `Departure: ${flight.departure_time} | Arrival: ${flight.arrival_time} | Duration: ${flight.duration} | ` +
+            `Cost: $${flight.cost}${layoverStr}`
+          );
+        });
+        console.log(`Total Flight Duration: ${itinerary.total_flight_duration}`);
+        console.log(`Total Layover Duration: ${itinerary.total_layover_duration}`);
+        console.log(`Total Travel Time: ${itinerary.total_travel_time}`);
+        console.log(`Total Flight Cost: $${itinerary.total_cost.toFixed(2)}`);
+        validItineraries.push({ sequence, itinerary });
+      } else {
+        console.log("No valid itinerary for this sequence.");
+      }
+    }
 
     // Create an array of promises for each sequence
-    const sequencePromises = allSequences.map(async (sequence) => {
-      console.log(`Checking sequence: ${sequence}`);
-      const itinerary = await flightInstance.simulateItinerary(start_origin, sequence, currentTime);
-      return { sequence, itinerary };
-    });
+    // const sequencePromises = allSequences.map(async (sequence) => {
+    //   console.log(`Checking sequence: ${sequence}`);
+    //   const itinerary = await flightInstance.simulateItinerary(start_origin, sequence, currentTime);
+    //   return { sequence, itinerary };
+    // });
 
-    // Wait for all promises to settle
-    const results = await Promise.allSettled(sequencePromises);
+    // // Wait for all promises to settle
+    // const results = await Promise.allSettled(sequencePromises);
+    // console.log(`Results:::::::::::::::::: ${results}`);
 
     // Filter out successful results
-    const validItineraries = results
-      .filter((result) => result.status === "fulfilled" && result.value.itinerary)
-      .map((result) => result.value);
+    // const validItineraries = results
+    //   .filter((result) => result.status === "fulfilled" && result.value.itinerary)
+    //   .map((result) => result.value);
 
     if (validItineraries.length > 0) {
       const bestItinerary = validItineraries.reduce((prev, curr) =>

@@ -92,7 +92,8 @@ class DirectFlight {
         cost: validFlights[0].cost,
       };
     } catch (error) {
-      console.error(`Error fetching flights: ${JSON.stringify(error)}`);
+      // console.error(`Error fetching flights: ${JSON.stringify(error)}`);
+      console.error(`Error fetching flights: ${JSON.stringify(error.description)}`);
       return null;
     }
   }
